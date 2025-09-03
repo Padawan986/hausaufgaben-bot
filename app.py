@@ -1,12 +1,15 @@
 import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import json
 
 st.set_page_config(page_title="📚 Hausaufgaben-Bot", page_icon="📖")
 st.title("📚 Hausaufgaben-Bot")
 
-# --- LOGIN ---
-PASSWORD = "Padawan985!"  # Passwort ändern
+# -----------------------
+# LOGIN
+# -----------------------
+PASSWORD = "1234"  # Passwort ändern
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -21,13 +24,22 @@ if not st.session_state.logged_in:
 else:
     st.info("Du bist eingeloggt. Hausaufgaben können hinzugefügt oder gelöscht werden.")
 
-# --- GOOGLE SHEET VERBINDUNG ---
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open_by_key("1CPklXIuicJzJ8me1D1AMA64QFrCFc7m7nFJqow68yBU").sheet1  # hier Sheet-ID einfügen
+# -----------------------
+# GOOGLE SHEET VERBINDUNG
+# -----------------------
+scope = ["https://spreadsheets.google.com/feeds",
+         "https://www.googleapis.com/auth/drive"]
 
-# --- Hilfsfunktionen ---
+# JSON-Key aus Streamlit Secret
+creds_dict = json.loads(st.secrets["GOOGLE_CREDS_JSON"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+
+client = gspread.authorize(creds)
+sheet = client.open_by_key("1CPklXIuicJzJ8me1D1AMA64QFrCFc7m7nFJqow68yBU").sheet1  # Sheet-ID anpassen
+
+# -----------------------
+# Hilfsfunktionen
+# -----------------------
 def load_hw():
     data = sheet.get_all_records()
     hw = {}
@@ -54,13 +66,17 @@ def delete_hw(date, fach=None):
             if r_date != date:
                 sheet.append_row([r_date, r_fach, r_task])
 
-# --- HAUSAUFGABEN DATEN ---
+# -----------------------
+# Fächerliste
+# -----------------------
 subjects = ["Mathe", "Deutsch", "Englisch", "Biologie", "Chemie", "Physik",
             "Geschichte", "Geographie", "Sport", "Kunst", "Musik"]
 
 hw_data = load_hw()
 
-# --- HINZUFÜGEN ---
+# -----------------------
+# Hausaufgaben hinzufügen
+# -----------------------
 if st.session_state.logged_in:
     with st.form("add_hw"):
         date = st.text_input("📅 Datum (z.B. 21.7.1)", key="add_date")
@@ -72,7 +88,9 @@ if st.session_state.logged_in:
             st.success(f"✅ Aufgabe hinzugefügt: {subject} → {task} ({date})")
             hw_data = load_hw()
 
-# --- LÖSCHEN ---
+# -----------------------
+# Hausaufgaben löschen
+# -----------------------
 if st.session_state.logged_in:
     st.subheader("🗑️ Hausaufgaben löschen")
     all_dates = list(hw_data.keys())
@@ -92,7 +110,9 @@ if st.session_state.logged_in:
                 st.success(f"🗑️ {subject_to_delete} am {date_for_subject} gelöscht!")
                 hw_data = load_hw()
 
-# --- ABFRAGE ---
+# -----------------------
+# Hausaufgaben abfragen
+# -----------------------
 query_date = st.text_input("🔍 Datum eingeben (z.B. 21.7.1):", key="query_date")
 if query_date in hw_data:
     st.write("### 📖 Hausaufgaben:")
