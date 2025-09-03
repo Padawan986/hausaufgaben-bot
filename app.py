@@ -1,10 +1,7 @@
 import streamlit as st
 import gspread
-from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
-import json
+import pandas as pd
 
-# Streamlit App Konfiguration
 st.set_page_config(page_title="📚 Hausaufgaben-Bot", page_icon="📖")
 st.title("📚 Hausaufgaben-Bot")
 
@@ -27,27 +24,16 @@ else:
     st.info("Du bist eingeloggt. Hausaufgaben können hinzugefügt oder gelöscht werden.")
 
 # -----------------------
-# GOOGLE SHEET VERBINDUNG
+# GOOGLE SHEET VERBINDUNG (öffentlicher Link)
 # -----------------------
+PUBLIC_SHEET_URL = "https://docs.google.com/spreadsheets/d/1CPklXIuicJzJ8me1D1AMA64QFrCFc7m7nFJqow68yBU/edit?usp=sharing"
+SHEET_ID = PUBLIC_SHEET_URL.split("/")[5]
+
 try:
-    # Authentifizierung mit Service Account
-    creds = Credentials.from_service_account_info(
-        json.loads(st.secrets["GOOGLE_CREDS_JSON"]),
-        scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    )
-
-    # Überprüfen, ob die Anmeldeinformationen gültig sind
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-
-    gc = gspread.authorize(creds)
-
-    # Öffnen des Sheets über die URL
-    spreadsheet = gc.open_by_url('https://docs.google.com/spreadsheets/d/1CPklXIuicJzJ8me1D1AMA64QFrCFc7m7nFJqow68yBU/edit?usp=sharing')
-    worksheet = spreadsheet.sheet1
-
-    st.success("✅ Google Sheet erfolgreich verbunden!")
-
+    gc = gspread.public()  # Zugriff auf öffentliche Sheets
+    sh = gc.open_by_key(SHEET_ID)
+    worksheet = sh.sheet1
+    st.success("✅ Öffentlicher Google Sheet erfolgreich verbunden!")
 except Exception as e:
     st.error(f"❌ Fehler beim Öffnen des Sheets: {e}")
 
