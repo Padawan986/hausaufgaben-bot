@@ -1,10 +1,12 @@
 import streamlit as st
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 st.set_page_config(page_title="📚 Hausaufgaben-Bot", page_icon="📖")
 st.title("📚 Hausaufgaben-Bot")
 
 # --- LOGIN ---
-PASSWORD = "Padawan985!"  # dein Passwort
+PASSWORD = "Padawan985!"  # Passwort ändern
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -19,16 +21,46 @@ if not st.session_state.logged_in:
 else:
     st.info("Du bist eingeloggt. Hausaufgaben können hinzugefügt oder gelöscht werden.")
 
+# --- GOOGLE SHEET VERBINDUNG ---
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+client = gspread.authorize(creds)
+sheet = client.open_by_key("1CPklXIuicJzJ8me1D1AMA64QFrCFc7m7nFJqow68yBU").sheet1  # hier Sheet-ID einfügen
+
+# --- Hilfsfunktionen ---
+def load_hw():
+    data = sheet.get_all_records()
+    hw = {}
+    for row in data:
+        date, fach, task = row["Datum"], row["Fach"], row["Aufgabe"]
+        if date not in hw:
+            hw[date] = {}
+        hw[date][fach] = task
+    return hw
+
+def save_hw(date, fach, task):
+    sheet.append_row([date, fach, task])
+
+def delete_hw(date, fach=None):
+    all_records = sheet.get_all_records()
+    sheet.clear()
+    sheet.append_row(["Datum", "Fach", "Aufgabe"])  # Header wieder hinzufügen
+    for row in all_records:
+        r_date, r_fach, r_task = row["Datum"], row["Fach"], row["Aufgabe"]
+        if fach:
+            if not (r_date == date and r_fach == fach):
+                sheet.append_row([r_date, r_fach, r_task])
+        else:
+            if r_date != date:
+                sheet.append_row([r_date, r_fach, r_task])
+
 # --- HAUSAUFGABEN DATEN ---
-subjects = ["Mathe", "Deutsch", "Englisch", "Biologie", "Chemie", "Physik", 
+subjects = ["Mathe", "Deutsch", "Englisch", "Biologie", "Chemie", "Physik",
             "Geschichte", "Geographie", "Sport", "Kunst", "Musik"]
 
-if "hausaufgaben" not in st.session_state:
-    st.session_state.hausaufgaben = {
-        "21.7.1": {"Mathe": "Seite 21/4", "Deutsch": "Seite 32/3", "Englisch": "-"}
-    }
+hw_data = load_hw()
 
-# --- HAUSAUFGABEN HINZUFÜGEN ---
+# --- HINZUFÜGEN ---
 if st.session_state.logged_in:
     with st.form("add_hw"):
         date = st.text_input("📅 Datum (z.B. 21.7.1)", key="add_date")
@@ -36,42 +68,35 @@ if st.session_state.logged_in:
         task = st.text_input("✏️ Aufgabe", key="add_task")
         submit = st.form_submit_button("➕ Hinzufügen")
         if submit and date and subject and task:
-            if date not in st.session_state.hausaufgaben:
-                st.session_state.hausaufgaben[date] = {}
-            st.session_state.hausaufgaben[date][subject] = task
+            save_hw(date, subject, task)
             st.success(f"✅ Aufgabe hinzugefügt: {subject} → {task} ({date})")
+            hw_data = load_hw()
 
-# --- HAUSAUFGABEN LÖSCHEN ---
+# --- LÖSCHEN ---
 if st.session_state.logged_in:
     st.subheader("🗑️ Hausaufgaben löschen")
-    # 1️⃣ Datum komplett löschen
-    all_dates = list(st.session_state.hausaufgaben.keys())
+    all_dates = list(hw_data.keys())
     if all_dates:
         del_date = st.selectbox("📅 Ganzes Datum löschen", all_dates, key="del_date_all")
         if st.button("🗑️ Datum löschen"):
-            if del_date in st.session_state.hausaufgaben:
-                del st.session_state.hausaufgaben[del_date]
-                st.success(f"🗑️ Alle Aufgaben am {del_date} gelöscht!")
+            delete_hw(del_date)
+            st.success(f"🗑️ Alle Aufgaben am {del_date} gelöscht!")
+            hw_data = load_hw()
 
-    # 2️⃣ Einzelne Aufgabe löschen
-    if all_dates:
         date_for_subject = st.selectbox("📅 Datum auswählen für einzelne Aufgabe", all_dates, key="del_date_subject")
-        subjects_for_date = list(st.session_state.hausaufgaben[date_for_subject].keys())
+        subjects_for_date = list(hw_data[date_for_subject].keys())
         if subjects_for_date:
             subject_to_delete = st.selectbox("📘 Fach auswählen", subjects_for_date, key="del_subject_single")
             if st.button("🗑️ Einzelne Aufgabe löschen"):
-                del st.session_state.hausaufgaben[date_for_subject][subject_to_delete]
+                delete_hw(date_for_subject, subject_to_delete)
                 st.success(f"🗑️ {subject_to_delete} am {date_for_subject} gelöscht!")
-                # Wenn danach kein Fach mehr am Datum ist, Datum auch löschen
-                if not st.session_state.hausaufgaben[date_for_subject]:
-                    del st.session_state.hausaufgaben[date_for_subject]
+                hw_data = load_hw()
 
 # --- ABFRAGE ---
 query_date = st.text_input("🔍 Datum eingeben (z.B. 21.7.1):", key="query_date")
-
-if query_date in st.session_state.hausaufgaben:
+if query_date in hw_data:
     st.write("### 📖 Hausaufgaben:")
-    for fach, aufgabe in st.session_state.hausaufgaben[query_date].items():
-        st.write(f"- **{fach}**: {aufgabe}")
+    for fach, task in hw_data[query_date].items():
+        st.write(f"- **{fach}**: {task}")
 elif query_date:
     st.warning("❌ Keine Hausaufgaben für dieses Datum gefunden.")
