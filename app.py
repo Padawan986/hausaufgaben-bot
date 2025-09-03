@@ -4,7 +4,7 @@ st.set_page_config(page_title="📚 Hausaufgaben-Bot", page_icon="📖")
 st.title("📚 Hausaufgaben-Bot")
 
 # --- LOGIN ---
-PASSWORD = "1234"  # dein Passwort
+PASSWORD = "Padawan985!"  # dein Passwort
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
