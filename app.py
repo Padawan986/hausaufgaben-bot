@@ -4,6 +4,9 @@ st.set_page_config(page_title="📚 Hausaufgaben-Bot", page_icon="📖")
 
 st.title("📚 Hausaufgaben-Bot")
 
+# Fächer-Liste (kannst du beliebig erweitern)
+subjects = ["Mathe", "Deutsch", "Englisch", "Biologie", "Chemie", "Physik", "Geschichte", "Geographie", "Sport", "Kunst", "Musik"]
+
 # Speicher für Hausaufgaben (normalerweise Datenbank, hier nur als dict)
 if "hausaufgaben" not in st.session_state:
     st.session_state.hausaufgaben = {
@@ -13,7 +16,7 @@ if "hausaufgaben" not in st.session_state:
 # Eingabeformular zum Hinzufügen
 with st.form("add_hw"):
     date = st.text_input("📅 Datum (z.B. 21.7.1)")
-    subject = st.text_input("📘 Fach")
+    subject = st.selectbox("📘 Fach auswählen", subjects)
     task = st.text_input("✏️ Aufgabe")
     submit = st.form_submit_button("➕ Hinzufügen")
 
