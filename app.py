@@ -5,7 +5,7 @@ st.set_page_config(page_title="📚 Hausaufgaben-Bot", page_icon="📖")
 st.title("📚 Hausaufgaben-Bot")
 
 # Fächer-Liste (kannst du beliebig erweitern)
-subjects = ["Mathe", "Deutsch", "Englisch", "Biologie", "Chemie", "Physik", "Geschichte", "Geographie", "Sport", "Kunst", "Musik"]
+subjects = ["Mathe", "Deutsch", "Englisch", "Biologie", "Chemie", "Physik", "Geschichte", "Geographie", "Sport", "Kunst", "Musik", "Latein"]
 
 # Speicher für Hausaufgaben (normalerweise Datenbank, hier nur als dict)
 if "hausaufgaben" not in st.session_state:
