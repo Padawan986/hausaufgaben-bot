@@ -53,3 +53,9 @@ try:
     st.write("✅ Sheet geöffnet")
 except Exception as e:
     st.error(f"❌ Fehler beim Öffnen des Sheets: {e}")
+try:
+    sheet = client.open_by_key("1CPklXIuicJzJ8me1D1AMA64QFrCFc7m7nFJqow68yBU").sheet1
+    st.write("✅ Sheet geöffnet")
+    st.write("Erste Zeile:", sheet.row_values(1))
+except Exception as e:
+    st.error(f"❌ Fehler beim Öffnen des Sheets: {e}")
